@@ -103,7 +103,7 @@ android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, INTERNET
 # (int) Target Android API, should be as high as possible.
 android.api = 33
 android.build_tools = 33.0.2
-
+android.accept_sdk_license = True
 # (int) Minimum API your APK / AAB will support.
 android.minapi = 21
 
