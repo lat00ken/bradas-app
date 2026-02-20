@@ -9,47 +9,65 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: "temurin"
           java-version: "17"
 
       - name: Install system deps
         run: |
-          sudo apt update
-          sudo apt install -y python3-pip python3-venv zip unzip wget
+          sudo apt-get update
+          sudo apt-get install -y zip unzip curl git build-essential \
+            libffi-dev libssl-dev zlib1g-dev libsqlite3-dev
+
+      - name: Create venv + install buildozer
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install -U pip setuptools wheel
+          pip install buildozer Cython
 
       - name: Install Android SDK (cmdline-tools) + accept licenses
+        env:
+          ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
         run: |
-          mkdir -p $HOME/android-sdk/cmdline-tools
-          cd $HOME/android-sdk/cmdline-tools
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline.zip
-          unzip -q cmdline.zip
+          set -e
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          cd "$ANDROID_SDK_ROOT/cmdline-tools"
+
+          curl -L -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdline-tools.zip
+          rm -f cmdline-tools.zip
+
+          rm -rf latest
           mv cmdline-tools latest
 
-          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
+          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
 
+          sdkmanager --version
           yes | sdkmanager --licenses
 
-          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
-
-      - name: Create Python venv + install buildozer
-        run: |
-          python3 -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install buildozer cython
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-33" \
+            "build-tools;33.0.2"
 
       - name: Build APK
         env:
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+          ANDROID_HOME: ${{ github.workspace }}/android-sdk
         run: |
-          source venv/bin/activate
+          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
+          . .venv/bin/activate
           buildozer -v android debug
 
       - name: Upload APK
