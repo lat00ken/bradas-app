@@ -3,9 +3,6 @@ workflows:
     name: Android APK build
     max_build_duration: 60
 
-    environment:
-      python: 3.10
-
     scripts:
       - pip install buildozer
       - buildozer android debug
