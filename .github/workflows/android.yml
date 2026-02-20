@@ -12,40 +12,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Install Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Install Android SDK
-        run: |
-          mkdir -p $HOME/android-sdk/cmdline-tools
-          cd $HOME/android-sdk/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip commandlinetools-linux-*.zip
-          mv cmdline-tools latest
+      - name: Accept Android licenses
+        run: yes | sdkmanager --licenses || true
 
-          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
-
-      - name: Accept licenses
-        run: yes | sdkmanager --licenses
-
-      - name: Install Android packages
-        run: |
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-33"
-          sdkmanager "build-tools;33.0.2"
-
-      - name: Install Python deps
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install buildozer cython
-
-      - name: Build APK
-        run: buildozer android debug
+      - name: Build with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        env:
+          USER: root
+        with:
+          buildozer_version: stable
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
