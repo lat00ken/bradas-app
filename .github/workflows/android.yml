@@ -12,21 +12,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y python3-pip python3-venv zip unzip openjdk-17-jdk
 
-      - name: Accept Android licenses
-        run: yes | sdkmanager --licenses || true
+      - name: Create Python venv
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install buildozer cython
 
-      - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        env:
-          USER: root
-        with:
-          buildozer_version: stable
+      - name: Build APK
+        run: |
+          source venv/bin/activate
+          buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
